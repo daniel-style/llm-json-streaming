@@ -43,15 +43,23 @@ async def test_mock_provider_streaming():
     prompt = "Get user"
     
     deltas = []
+    partials = []
     final_obj = None
     
     async for chunk in provider.stream_json(prompt, User):
         if "delta" in chunk:
             deltas.append(chunk["delta"])
+        if "partial_json" in chunk:
+            partials.append(chunk["partial_json"])
         if "final_object" in chunk:
             final_obj = chunk["final_object"]
             
     assert "".join(deltas) == '{"name": "John", "age": 30, "city": "New York"}'
+    assert partials == [
+        '{"name": "John"',
+        '{"name": "John", "age": 30',
+        '{"name": "John", "age": 30, "city": "New York"}',
+    ]
     assert final_obj is not None
     assert final_obj.name == "John"
     assert final_obj.age == 30

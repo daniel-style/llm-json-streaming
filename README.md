@@ -10,6 +10,8 @@ This library abstracts the differences between providers' structured output APIs
 - **JSON Streaming**: Access raw JSON chunks as they are generated (`delta`).
 - **Structured Outputs**: Enforce schema validation using Pydantic models.
 - **Partial Parsing**: Access accumulated JSON strings during streaming.
+- **Claude Structured Outputs**: Automatically upgrades Claude Sonnet 4.5 / Opus 4.1 requests to Anthropic's JSON outputs for guaranteed schemas.
+- **Claude Prefill Strategy**: Older Claude models avoid tool calls entirely—schema-aware prefilling keeps responses JSON-only while still streaming deltas.
 
 ## Installation
 
@@ -87,7 +89,16 @@ if __name__ == "__main__":
 | Provider | Default Model | Method Used |
 |----------|---------------|-------------|
 | OpenAI   | `gpt-4o-2024-08-06` | `response_format` (Structured Outputs) via `beta.chat.completions` |
-| Anthropic   | `claude-3-5-sonnet-20240620` | Tool Use (Function Calling) |
+| Anthropic   | `claude-3-5-sonnet-20240620` (auto-switches to Structured Outputs for `claude-sonnet-4.5*` / `claude-opus-4.1*`) | Prefill JSON streaming for legacy models, Structured Outputs (`output_format` + beta header) for Sonnet 4.5 / Opus 4.1 |
+
+### Anthropic Structured Outputs
+
+Claude Sonnet 4.5 and Claude Opus 4.1 support Anthropic's structured output beta.  
+`AnthropicProvider.stream_json` detects these models (or you can pass `use_structured_outputs=True`) and sends the `output_format` schema plus the `structured-outputs-2025-11-13` beta header, so chunks include partial JSON text and final Pydantic objects automatically.
+
+### Anthropic Prefill Mode
+
+All other Claude models now receive schema-derived instructions and an assistant prefill (e.g., `{` or `{"field":`) so they skip generic preambles and stream JSON directly—no tool definitions or tool-use deltas required.
 
 ## Testing
 

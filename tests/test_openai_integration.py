@@ -31,7 +31,7 @@ class UserInfo(BaseModel):
 @pytest.mark.asyncio
 @pytest.mark.skipif(not os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY") == "your_openai_api_key", 
                     reason="OPENAI_API_KEY not set")
-async def test_openai_integration():
+async def test_openai_integration(capsys):
     api_key = os.getenv("OPENAI_API_KEY")
     base_url = os.getenv("OPENAI_BASE_URL")
     
@@ -46,29 +46,41 @@ async def test_openai_integration():
         "Make the bio descriptive and at least 2 sentences long."
     )
     
-    print(f"\nPrompt: {prompt}")
-    print("-" * 50)
+    with capsys.disabled():
+        print(f"\nPrompt: {prompt}")
+        print("-" * 50)
     
     final_object = None
-    accumulated_text = ""
+    latest_partial_json: Optional[str] = None
+    final_json_text: Optional[str] = None
     
     async for chunk in provider.stream_json(prompt, UserInfo, model=model):
-        if "delta" in chunk:
-            delta = chunk["delta"]
-            accumulated_text += delta
-            print(delta, end="", flush=True)
-            
+        delta = chunk.get("delta")
+        if delta:
+            with capsys.disabled():
+                print(delta, end="", flush=True)
+
+        partial_json = chunk.get("partial_json")
+        if partial_json is not None:
+            latest_partial_json = partial_json
+
         if "final_object" in chunk:
             final_object = chunk["final_object"]
+        if "final_json" in chunk:
+            final_json_text = chunk["final_json"]
             
-    print("\n" + "-" * 50)
+    with capsys.disabled():
+        print("\n" + "-" * 50)
             
     assert final_object is not None
     assert isinstance(final_object, UserInfo)
     assert len(final_object.experiences) >= 3
     assert len(final_object.projects) >= 2
     assert len(final_object.skills) >= 5
-    print("\n[Test Passed] Final Object Parsed Successfully:")
-    print(f"Name: {final_object.name}")
-    print(f"Experiences: {len(final_object.experiences)}")
-    print(f"Projects: {len(final_object.projects)}")
+    if latest_partial_json and final_json_text:
+        assert latest_partial_json.strip() == final_json_text.strip()
+    with capsys.disabled():
+        print("\n[Test Passed] Final Object Parsed Successfully:")
+        print(f"Name: {final_object.name}")
+        print(f"Experiences: {len(final_object.experiences)}")
+        print(f"Projects: {len(final_object.projects)}")
