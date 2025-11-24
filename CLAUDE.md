@@ -61,8 +61,13 @@ The project uses pytest with pytest-asyncio for async testing. Tests are organiz
 ### Streaming Interface
 
 All providers implement the `stream_json()` method that yields dictionaries with:
+- `partial_object`: Current best parsed Pydantic object (automatically repaired using json-repair)
 - `delta`: Real-time text updates during streaming
-- `final_object`: Fully parsed Pydantic model when complete
+- `final_object`: Complete, validated Pydantic model when streaming finishes
+- `partial_json`: Current accumulated JSON text string
+- `final_json`: Complete JSON text string when streaming finishes
+
+**Best Practice**: Use `partial_object` for real-time UI updates as it provides the most reliable partial parsing with automatic JSON repair.
 
 ### Configuration
 
