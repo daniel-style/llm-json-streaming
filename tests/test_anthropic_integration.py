@@ -63,11 +63,11 @@ async def test_anthropic_integration(capsys):
     with capsys.disabled():
         async for chunk in provider.stream_json(prompt, UserInfo, model=model):
 
-            partial_json = chunk.get("partial_json")
-            if partial_json is not None:
+            partial_object = chunk.get("partial_object")
+            if partial_object is not None:
                 print("\033c", end="")  # 清空终端
-                print(partial_json, end="", flush=True)
-                latest_partial_json = partial_json
+                print(partial_object, end="", flush=True)
+                latest_partial_json = partial_object
 
             if "final_object" in chunk:
                 final_object = chunk["final_object"]

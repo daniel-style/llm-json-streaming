@@ -55,10 +55,12 @@ async def test_openai_integration(capsys):
     final_json_text: Optional[str] = None
     
     async for chunk in provider.stream_json(prompt, UserInfo, model=model):
-        delta = chunk.get("delta")
-        if delta:
+        partial_object = chunk.get("partial_object")
+        if partial_object is not None:
             with capsys.disabled():
-                print(delta, end="", flush=True)
+                print("\033c", end="")  # 清空终端
+                print(partial_object, end="", flush=True)
+                latest_partial_json = partial_object
 
         partial_json = chunk.get("partial_json")
         if partial_json is not None:

@@ -10,6 +10,7 @@ This library abstracts the differences between providers' structured output APIs
 - **JSON Streaming**: Access raw JSON chunks as they are generated (`delta`).
 - **Structured Outputs**: Enforce schema validation using Pydantic models.
 - **Partial Parsing**: Access accumulated JSON strings during streaming.
+- **Automatic JSON Repair**: Automatically repairs and completes partial JSON during streaming using json-repair. This ensures that even incomplete JSON chunks can be parsed into valid Pydantic objects, improving the streaming experience.
 - **Claude Structured Outputs**: Automatically upgrades Claude Sonnet 4.5 / Opus 4.1 requests to Anthropic's JSON outputs for guaranteed schemas.
 - **Claude Prefill Strategy**: Older Claude models avoid tool calls entirely—schema-aware prefilling keeps responses JSON-only while still streaming deltas.
 

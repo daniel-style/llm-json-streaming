@@ -12,6 +12,7 @@ dependencies = [
     "anthropic",
     "pydantic>=2.0",
     "python-dotenv",
+    "json-repair>=0.30.0",
 ]
 
 [project.urls]
