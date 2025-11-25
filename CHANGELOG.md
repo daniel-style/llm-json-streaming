@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2024-11-25
+
+### Fixed
+- 🔧 **GitHub Actions CI/CD Improvements**:
+  - Fixed deprecated actions/upload-artifact and actions/download-artifact v3 usage
+  - Upgraded to artifact actions v4 for future compatibility
+  - Resolved YAML syntax errors in release workflow
+  - Fixed boolean input value formatting for GitHub Actions
+
+### Changed
+- 🚀 **Enhanced Release Process**:
+  - Improved automated publishing workflow
+  - Better environment configuration for PyPI publishing
+  - Enhanced changelog generation from git tags
+
 ## [0.1.0] - 2024-11-25
 
 ### Added
