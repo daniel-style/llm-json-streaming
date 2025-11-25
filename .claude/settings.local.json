@@ -21,7 +21,9 @@
       "Bash(uv run isort --check-only:*)",
       "Bash(uv run isort:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git tag:*)",
+      "Bash(uv pip install:*)"
     ],
     "deny": [],
     "ask": []
