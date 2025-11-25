@@ -5,6 +5,6 @@ from .providers import OpenAIProvider, AnthropicProvider
 __all__ = [
     "LLMJsonProvider",
     "create_provider",
-    "OpenAIProvider", 
+    "OpenAIProvider",
     "AnthropicProvider"
 ]

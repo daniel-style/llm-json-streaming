@@ -1,4 +1,4 @@
-from .openai_provider import OpenAIProvider
-from .anthropic_provider import AnthropicProvider
+from .openai import OpenAIProvider
+from .anthropic import AnthropicProvider
 
 __all__ = ["OpenAIProvider", "AnthropicProvider"]

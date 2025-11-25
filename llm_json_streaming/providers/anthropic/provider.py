@@ -3,9 +3,9 @@ import os
 from typing import Any, AsyncGenerator, Dict, Optional, Type
 from pydantic import BaseModel
 from anthropic import AsyncAnthropic
-from ..base import LLMJsonProvider
-from .anthropic_structured import StructuredOutputStreamer
-from .anthropic_prefill import PrefillJSONStreamer
+from ...base import LLMJsonProvider
+from .structured import StructuredOutputStreamer
+from .prefill import PrefillJSONStreamer
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,8 @@
       "Bash(uv add:*)",
       "Bash(uv run python:*)",
       "Bash(uv run pytest:*)",
-      "Bash(uv sync:*)"
+      "Bash(uv sync:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

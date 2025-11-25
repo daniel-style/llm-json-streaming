@@ -3,7 +3,7 @@ import os
 from typing import Any, AsyncGenerator, Dict, Optional, Type
 from pydantic import BaseModel
 from openai import AsyncOpenAI
-from ..base import LLMJsonProvider
+from ...base import LLMJsonProvider
 
 logger = logging.getLogger(__name__)
 
