@@ -24,7 +24,8 @@
       "Bash(git commit:*)",
       "Bash(git tag:*)",
       "Bash(uv pip install:*)",
-      "Bash(yamllint:*)"
+      "Bash(yamllint:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
