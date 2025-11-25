@@ -65,8 +65,12 @@ class StructuredOutputStreamer:
                     except Exception:
                         # Partial parses can raise while JSON is still incomplete
                         pass
-                    partial_object = parsed_snapshot or self._provider._safe_parse_json(accumulated_text, schema)
-                    looks_like_json = self._provider._looks_like_json_payload(accumulated_text)
+                    partial_object = parsed_snapshot or self._provider._safe_parse_json(
+                        accumulated_text, schema
+                    )
+                    looks_like_json = self._provider._looks_like_json_payload(
+                        accumulated_text
+                    )
                     if partial_object is None and not looks_like_json:
                         logger.warning(
                             "Anthropic structured stream skipping non-JSON chunk (delta preview=%r)",
@@ -126,4 +130,3 @@ class StructuredOutputStreamer:
             if payload:
                 return payload
         return {}
-

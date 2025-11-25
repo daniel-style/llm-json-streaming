@@ -55,8 +55,8 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest",
     "pytest-asyncio",
     "pytest-cov",

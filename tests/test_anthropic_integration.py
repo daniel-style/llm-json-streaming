@@ -1,9 +1,11 @@
-import pytest
-import os
 import asyncio
+import os
 from typing import List, Optional
+
+import pytest
 from dotenv import load_dotenv
 from pydantic import BaseModel
+
 from llm_json_streaming.providers import AnthropicProvider
 
 # Load environment variables from .env file, overriding system envs

@@ -1,11 +1,13 @@
 import logging
 import os
 from typing import Any, AsyncGenerator, Dict, Optional, Type
-from pydantic import BaseModel
+
 from anthropic import AsyncAnthropic
+from pydantic import BaseModel
+
 from ...base import LLMJsonProvider
-from .structured import StructuredOutputStreamer
 from .prefill import PrefillJSONStreamer
+from .structured import StructuredOutputStreamer
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +48,13 @@ class AnthropicProvider(LLMJsonProvider):
         self._mode = mode
         self._base_url = base_url
         self.client = AsyncAnthropic(
-            api_key=api_key or os.environ.get("ANTHROPIC_API_KEY"),
-            base_url=base_url
+            api_key=api_key or os.environ.get("ANTHROPIC_API_KEY"), base_url=base_url
         )
-        logger.debug("AnthropicProvider initialized (mode=%s, base_url=%s)", mode, base_url or "default")
+        logger.debug(
+            "AnthropicProvider initialized (mode=%s, base_url=%s)",
+            mode,
+            base_url or "default",
+        )
         self._structured_streamer = StructuredOutputStreamer(
             provider=self,
             structured_output_beta=STRUCTURED_OUTPUT_BETA,
@@ -61,7 +66,7 @@ class AnthropicProvider(LLMJsonProvider):
         prompt: str,
         schema: Type[BaseModel],
         model: str = "claude-3-5-sonnet-20240620",
-        **kwargs
+        **kwargs,
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Stream JSON from Anthropic. Structured Outputs are used for Claude
@@ -101,7 +106,9 @@ class AnthropicProvider(LLMJsonProvider):
             self._mode,
         )
 
-        print(f"[AnthropicProvider stream_json] use_structured_outputs: {use_structured_outputs}")
+        print(
+            f"[AnthropicProvider stream_json] use_structured_outputs: {use_structured_outputs}"
+        )
         if use_structured_outputs:
             async for chunk in self._stream_structured_outputs(
                 prompt, schema, model, debug_print=debug_print, **kwargs
@@ -170,7 +177,7 @@ class AnthropicProvider(LLMJsonProvider):
 
         candidate_segments = [lowered]
         if lowered.startswith("claude-"):
-            candidate_segments.append(lowered[len("claude-"):])
+            candidate_segments.append(lowered[len("claude-") :])
 
         for candidate in candidate_segments:
             for hint in STRUCTURED_OUTPUT_MODEL_HINTS:

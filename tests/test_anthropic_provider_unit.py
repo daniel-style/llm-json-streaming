@@ -1,4 +1,5 @@
 import types
+
 import pytest
 from pydantic import BaseModel
 
@@ -23,11 +24,15 @@ async def test_structured_outputs_path_for_new_models():
     async def prefill_stub(self, *args, **kwargs):
         yield {"path": "prefill"}
 
-    provider._stream_structured_outputs = _bind_async_generator(provider, structured_stub)
+    provider._stream_structured_outputs = _bind_async_generator(
+        provider, structured_stub
+    )
     provider._stream_prefill_json = _bind_async_generator(provider, prefill_stub)
 
     chunks = []
-    async for chunk in provider.stream_json("prompt", DummySchema, model="claude-sonnet-4.5"):
+    async for chunk in provider.stream_json(
+        "prompt", DummySchema, model="claude-sonnet-4.5"
+    ):
         chunks.append(chunk)
 
     assert chunks == [{"path": "structured"}]
@@ -43,11 +48,15 @@ async def test_prefill_path_for_legacy_models():
     async def prefill_stub(self, *args, **kwargs):
         yield {"path": "prefill"}
 
-    provider._stream_structured_outputs = _bind_async_generator(provider, structured_stub)
+    provider._stream_structured_outputs = _bind_async_generator(
+        provider, structured_stub
+    )
     provider._stream_prefill_json = _bind_async_generator(provider, prefill_stub)
 
     chunks = []
-    async for chunk in provider.stream_json("prompt", DummySchema, model="claude-3-5-sonnet-20240620"):
+    async for chunk in provider.stream_json(
+        "prompt", DummySchema, model="claude-3-5-sonnet-20240620"
+    ):
         chunks.append(chunk)
 
     assert chunks == [{"path": "prefill"}]
@@ -63,7 +72,9 @@ async def test_use_structured_outputs_override_flag():
     async def prefill_stub(self, *args, **kwargs):
         yield {"path": "prefill"}
 
-    provider._stream_structured_outputs = _bind_async_generator(provider, structured_stub)
+    provider._stream_structured_outputs = _bind_async_generator(
+        provider, structured_stub
+    )
     provider._stream_prefill_json = _bind_async_generator(provider, prefill_stub)
 
     chunks = []
@@ -88,11 +99,15 @@ async def test_structured_outputs_disabled_for_custom_base_url():
     async def prefill_stub(self, *args, **kwargs):
         yield {"path": "prefill"}
 
-    provider._stream_structured_outputs = _bind_async_generator(provider, structured_stub)
+    provider._stream_structured_outputs = _bind_async_generator(
+        provider, structured_stub
+    )
     provider._stream_prefill_json = _bind_async_generator(provider, prefill_stub)
 
     chunks = []
-    async for chunk in provider.stream_json("prompt", DummySchema, model="claude-sonnet-4.5"):
+    async for chunk in provider.stream_json(
+        "prompt", DummySchema, model="claude-sonnet-4.5"
+    ):
         chunks.append(chunk)
 
     assert chunks == [{"path": "prefill"}]
@@ -108,7 +123,9 @@ async def test_structured_override_respected_for_custom_base_url():
     async def prefill_stub(self, *args, **kwargs):
         yield {"path": "prefill"}
 
-    provider._stream_structured_outputs = _bind_async_generator(provider, structured_stub)
+    provider._stream_structured_outputs = _bind_async_generator(
+        provider, structured_stub
+    )
     provider._stream_prefill_json = _bind_async_generator(provider, prefill_stub)
 
     chunks = []
@@ -158,7 +175,7 @@ def test_detect_prefill_prefix_finds_last_assistant_stub():
     provider = AnthropicProvider(api_key="dummy")
     messages = [
         {"role": "user", "content": "hi"},
-        {"role": "assistant", "content": "{\n  \"name\":"},
+        {"role": "assistant", "content": '{\n  "name":'},
     ]
     assert provider._detect_prefill_prefix(messages) == '{\n  "name":'
 
@@ -195,4 +212,3 @@ def test_looks_like_json_payload_heuristic():
     assert provider._looks_like_json_payload('{"value":')
     assert provider._looks_like_json_payload("[1, 2")
     assert not provider._looks_like_json_payload("Plain text response")
-

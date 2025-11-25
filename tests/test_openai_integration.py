@@ -1,13 +1,16 @@
-import pytest
-import os
 import asyncio
+import os
 from typing import List, Optional
+
+import pytest
 from dotenv import load_dotenv
 from pydantic import BaseModel
+
 from llm_json_streaming.providers import OpenAIProvider
 
 # Load environment variables from .env file, overriding system envs
 load_dotenv(override=True)
+
 
 class Experience(BaseModel):
     title: str
@@ -15,10 +18,12 @@ class Experience(BaseModel):
     years: int
     description: str
 
+
 class Project(BaseModel):
     name: str
     technologies: List[str]
     details: str
+
 
 class UserInfo(BaseModel):
     name: str
@@ -28,16 +33,20 @@ class UserInfo(BaseModel):
     experiences: List[Experience]
     projects: List[Project]
 
+
 @pytest.mark.asyncio
-@pytest.mark.skipif(not os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY") == "your_openai_api_key", 
-                    reason="OPENAI_API_KEY not set")
+@pytest.mark.skipif(
+    not os.getenv("OPENAI_API_KEY")
+    or os.getenv("OPENAI_API_KEY") == "your_openai_api_key",
+    reason="OPENAI_API_KEY not set",
+)
 async def test_openai_integration(capsys):
     api_key = os.getenv("OPENAI_API_KEY")
     base_url = os.getenv("OPENAI_BASE_URL")
-    
+
     provider = OpenAIProvider(api_key=api_key, base_url=base_url)
     model = "gpt-4o-mini"
-    
+
     # A more complex prompt to generate longer JSON
     prompt = (
         "Generate a detailed user profile for a senior full-stack engineer. "
@@ -45,15 +54,15 @@ async def test_openai_integration(capsys):
         "5 skills, and 2 complex side projects. "
         "Make the bio descriptive and at least 2 sentences long."
     )
-    
+
     with capsys.disabled():
         print(f"\nPrompt: {prompt}")
         print("-" * 50)
-    
+
     final_object = None
     latest_partial_json: Optional[str] = None
     final_json_text: Optional[str] = None
-    
+
     async for chunk in provider.stream_json(prompt, UserInfo, model=model):
         partial_object = chunk.get("partial_object")
         if partial_object is not None:
@@ -70,10 +79,10 @@ async def test_openai_integration(capsys):
             final_object = chunk["final_object"]
         if "final_json" in chunk:
             final_json_text = chunk["final_json"]
-            
+
     with capsys.disabled():
         print("\n" + "-" * 50)
-            
+
     assert final_object is not None
     assert isinstance(final_object, UserInfo)
     assert len(final_object.experiences) >= 3

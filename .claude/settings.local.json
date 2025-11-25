@@ -16,7 +16,12 @@
       "Bash(twine upload:*)",
       "Bash(echo:*)",
       "Bash(uv init:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(uv run black:*)",
+      "Bash(uv run isort --check-only:*)",
+      "Bash(uv run isort:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

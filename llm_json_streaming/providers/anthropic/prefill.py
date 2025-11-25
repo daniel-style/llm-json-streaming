@@ -5,9 +5,8 @@ import logging
 import textwrap
 from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict, List, Optional, Type
 
-from pydantic import BaseModel
-
 from json_repair import repair_json
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from .provider import AnthropicProvider
@@ -123,7 +122,9 @@ class PrefillJSONStreamer:
                         "partial_json": accumulated_text,
                     }
                     if partial_object is not None:
-                        chunk["partial_object"] = self._normalize_partial_object(partial_object)
+                        chunk["partial_object"] = self._normalize_partial_object(
+                            partial_object
+                        )
                     yield chunk
                 elif event.type == "message_stop":
                     payload = self._parse_text_message(
@@ -224,7 +225,9 @@ class PrefillJSONStreamer:
 
         return summaries
 
-    def _describe_schema_type(self, node: Dict[str, Any], root_schema: Optional[Dict[str, Any]] = None) -> str:
+    def _describe_schema_type(
+        self, node: Dict[str, Any], root_schema: Optional[Dict[str, Any]] = None
+    ) -> str:
         node_type = node.get("type")
         if isinstance(node_type, list):
             node_type = "/".join(node_type)
@@ -243,7 +246,9 @@ class PrefillJSONStreamer:
                     # Show nested fields for objects
                     nested_fields = []
                     for prop_name, prop_details in props.items():
-                        prop_type = self._describe_schema_type(prop_details, root_schema)
+                        prop_type = self._describe_schema_type(
+                            prop_details, root_schema
+                        )
                         nested_fields.append(f'"{prop_name}": {prop_type}')
                     return f"object with fields: {', '.join(nested_fields)}"
                 else:

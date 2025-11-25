@@ -1,12 +1,12 @@
+import json
 import logging
 import os
-import json
 from typing import Any, AsyncGenerator, Dict, Optional, Type
-from pydantic import BaseModel
-from json_repair import repair_json
+
 from google import genai
 from google.genai import types
-
+from json_repair import repair_json
+from pydantic import BaseModel
 
 from ...base import LLMJsonProvider
 
@@ -128,9 +128,7 @@ class GoogleProvider(LLMJsonProvider):
                         # that can be concatenated to form the final complete JSON object
                         accumulated_json += text_chunk
 
-                        partial_object = self._safe_parse_json(
-                            accumulated_json, schema
-                        )
+                        partial_object = self._safe_parse_json(accumulated_json, schema)
 
                         if partial_object is None:
                             repaired_json = self._try_repair_json(accumulated_json)
@@ -140,7 +138,9 @@ class GoogleProvider(LLMJsonProvider):
                                 )
 
                         if partial_object is None:
-                            partial_object = self._try_repair_and_parse(accumulated_json)
+                            partial_object = self._try_repair_and_parse(
+                                accumulated_json
+                            )
 
                         looks_like_json = self._looks_like_json_payload(
                             accumulated_json

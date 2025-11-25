@@ -1,8 +1,10 @@
 import logging
 import os
 from typing import Any, AsyncGenerator, Dict, Optional, Type
-from pydantic import BaseModel
+
 from openai import AsyncOpenAI
+from pydantic import BaseModel
+
 from ...base import LLMJsonProvider
 
 logger = logging.getLogger(__name__)
@@ -11,8 +13,7 @@ logger = logging.getLogger(__name__)
 class OpenAIProvider(LLMJsonProvider):
     def __init__(self, api_key: str = None, base_url: str = None):
         self.client = AsyncOpenAI(
-            api_key=api_key or os.environ.get("OPENAI_API_KEY"),
-            base_url=base_url
+            api_key=api_key or os.environ.get("OPENAI_API_KEY"), base_url=base_url
         )
         logger.debug("OpenAIProvider initialized (base_url=%s)", base_url or "default")
 
@@ -21,7 +22,7 @@ class OpenAIProvider(LLMJsonProvider):
         prompt: str,
         schema: Type[BaseModel],
         model: str = "gpt-4o-2024-08-06",
-        **kwargs
+        **kwargs,
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Streams JSON from OpenAI using Structured Outputs via Chat Completions.
@@ -41,7 +42,7 @@ class OpenAIProvider(LLMJsonProvider):
             messages=[{"role": "user", "content": prompt}],
             response_format=schema,
             temperature=0.0,
-            **kwargs
+            **kwargs,
         ) as stream:
             async for event in stream:
                 if event.type == "content.delta":
@@ -52,7 +53,9 @@ class OpenAIProvider(LLMJsonProvider):
                     else:
                         accumulated_json = f"{accumulated_json}{delta_text}"
 
-                    parsed_object = event.parsed or self._safe_parse_json(accumulated_json, schema)
+                    parsed_object = event.parsed or self._safe_parse_json(
+                        accumulated_json, schema
+                    )
                     looks_like_json = self._looks_like_json_payload(accumulated_json)
                     if parsed_object is None and not looks_like_json:
                         logger.warning(
@@ -74,21 +77,16 @@ class OpenAIProvider(LLMJsonProvider):
                     logger.info("OpenAI stream completed successfully")
                     if debug_print:
                         self._debug_print_separator()
-                    yield {
-                        "final_object": event.parsed,
-                        "final_json": event.content
-                    }
+                    yield {"final_object": event.parsed, "final_json": event.content}
                 elif event.type == "refusal.delta":
                     logger.warning("OpenAI refusal delta encountered")
                     yield {
                         "refusal_delta": event.delta,
-                        "refusal_snapshot": event.snapshot
+                        "refusal_snapshot": event.snapshot,
                     }
                 elif event.type == "refusal.done":
                     logger.warning("OpenAI refusal completed: %s", event.refusal)
-                    yield {
-                        "refusal": event.refusal
-                    }
+                    yield {"refusal": event.refusal}
 
     def _resolve_debug_print(self, override: Optional[bool]) -> bool:
         if override is not None:
