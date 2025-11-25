@@ -58,6 +58,10 @@ async def main():
     # Available: "openai", "anthropic"
     # Ensure environment variables are set, or pass api_key="..."
     try:
+        # For Anthropic, you can optionally specify mode:
+        # provider = create_provider("anthropic", mode="structured")  # Force structured outputs
+        # provider = create_provider("anthropic", mode="prefill")     # Force prefill mode
+        # provider = create_provider("anthropic", mode="auto")        # Auto-detect (default)
         provider = create_provider("openai")
     except ValueError as e:
         print(e)
@@ -136,14 +140,49 @@ async for chunk in provider.stream_json(prompt, UserProfile):
 | OpenAI   | `gpt-4o-2024-08-06` | `response_format` (Structured Outputs) via `beta.chat.completions` |
 | Anthropic   | `claude-3-5-sonnet-20240620` (auto-switches to Structured Outputs for `claude-sonnet-4.5*` / `claude-opus-4.1*`) | Prefill JSON streaming for legacy models, Structured Outputs (`output_format` + beta header) for Sonnet 4.5 / Opus 4.1 |
 
+### Anthropic Mode Configuration
+
+You can configure which strategy Anthropic models use through multiple methods:
+
+#### Method 1: Constructor Mode (Recommended)
+
+```python
+from llm_json_streaming import create_provider
+
+# Force structured outputs mode
+provider = create_provider("anthropic", mode="structured")
+
+# Force prefill mode
+provider = create_provider("anthropic", mode="prefill")
+
+# Auto-detection based on model (default)
+provider = create_provider("anthropic", mode="auto")
+```
+
+#### Method 2: Method Parameter Override
+
+```python
+# Temporary override per request
+async for chunk in provider.stream_json(prompt, UserProfile,
+                                       model="claude-3-5-sonnet-20240620",
+                                       use_structured_outputs=True):
+    # Uses structured outputs regardless of auto-detection
+```
+
+#### Mode Priority
+
+1. **Constructor mode** (`mode=` parameter) - Highest priority
+2. **Method parameter** (`use_structured_outputs=`) - Medium priority
+3. **Auto-detection** - Based on model capabilities - Lowest priority
+
 ### Anthropic Structured Outputs
 
-Claude Sonnet 4.5 and Claude Opus 4.1 support Anthropic's structured output beta.  
-`AnthropicProvider.stream_json` detects these models (or you can pass `use_structured_outputs=True`) and sends the `output_format` schema plus the `structured-outputs-2025-11-13` beta header, so chunks include partial JSON text and final Pydantic objects automatically.
+Claude Sonnet 4.5 and Claude Opus 4.1 support Anthropic's structured output beta.
+When using structured mode, chunks include partial JSON text and final Pydantic objects automatically.
 
 ### Anthropic Prefill Mode
 
-All other Claude models now receive schema-derived instructions and an assistant prefill (e.g., `{` or `{"field":`) so they skip generic preambles and stream JSON directly—no tool definitions or tool-use deltas required.
+All other Claude models receive schema-derived instructions and an assistant prefill (e.g., `{` or `{"field":`) so they skip generic preambles and stream JSON directly—no tool definitions or tool-use deltas required.
 
 Enhanced with multi-level partial object support:
 - **Real-time partial objects**: Available from the first token, even with incomplete JSON

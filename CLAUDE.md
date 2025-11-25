@@ -50,9 +50,11 @@ The project uses pytest with pytest-asyncio for async testing. Tests are organiz
      - Default model: `gpt-4o-2024-08-06`
 
    - **Anthropic Provider** ([`llm_json_streaming/providers/anthropic_provider.py`](llm_json_streaming/providers/anthropic_provider.py))
-     - Dual strategy: Structured Outputs for new models, prefill for legacy
-     - Structured Outputs for Claude Sonnet 4.5+ and Opus 4.1+
-     - Prefill strategy for older Claude models
+     - Configurable strategy selection with three modes:
+       - `"auto"`: Auto-detect based on model capabilities (default)
+       - `"structured"`: Force structured outputs mode
+       - `"prefill"`: Force prefill mode
+     - Priority: constructor mode > method parameter > auto-detection
      - Uses specialized streaming classes:
        - `StructuredOutputStreamer` ([`llm_json_streaming/providers/anthropic_structured.py`](llm_json_streaming/providers/anthropic_structured.py))
        - `PrefillJSONStreamer` ([`llm_json_streaming/providers/anthropic_prefill.py`](llm_json_streaming/providers/anthropic_prefill.py))

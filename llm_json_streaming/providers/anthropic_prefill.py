@@ -209,7 +209,7 @@ class PrefillJSONStreamer:
         for name, details in properties.items():
             if not isinstance(details, dict):
                 continue
-            field_type = self._describe_schema_type(details)
+            field_type = self._describe_schema_type(details, json_schema)
             requirement = "required" if name in required_fields else "optional"
             constraints = self._collect_field_constraints(details)
             desc = details.get("description")
@@ -224,7 +224,7 @@ class PrefillJSONStreamer:
 
         return summaries
 
-    def _describe_schema_type(self, node: Dict[str, Any]) -> str:
+    def _describe_schema_type(self, node: Dict[str, Any], root_schema: Optional[Dict[str, Any]] = None) -> str:
         node_type = node.get("type")
         if isinstance(node_type, list):
             node_type = "/".join(node_type)
@@ -232,17 +232,37 @@ class PrefillJSONStreamer:
             if node_type == "array":
                 items = node.get("items") or {}
                 item_type = (
-                    self._describe_schema_type(items)
+                    self._describe_schema_type(items, root_schema)
                     if isinstance(items, dict)
                     else "any"
                 )
                 return f"array<{item_type}>"
             if node_type == "object":
                 props = node.get("properties") or {}
-                return f"object<{', '.join(props.keys()) or '...'}>"
+                if props:
+                    # Show nested fields for objects
+                    nested_fields = []
+                    for prop_name, prop_details in props.items():
+                        prop_type = self._describe_schema_type(prop_details, root_schema)
+                        nested_fields.append(f'"{prop_name}": {prop_type}')
+                    return f"object with fields: {', '.join(nested_fields)}"
+                else:
+                    return "object"
             return str(node_type)
         if "$ref" in node:
-            return str(node["$ref"])
+            # Resolve $ref to get the actual type name
+            if root_schema:
+                ref = node["$ref"]
+                ref_name = ref.split("/")[-1]
+                defs = root_schema.get("$defs") or root_schema.get("definitions") or {}
+                target = defs.get(ref_name, {})
+                # Recursively describe the referenced type
+                return self._describe_schema_type(target, root_schema)
+            else:
+                # Fallback: extract just the type name from the reference
+                ref = node["$ref"]
+                ref_name = ref.split("/")[-1]
+                return f"reference to {ref_name}"
         return "any"
 
     def _collect_field_constraints(self, node: Dict[str, Any]) -> List[str]:

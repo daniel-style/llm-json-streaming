@@ -30,15 +30,26 @@ class AnthropicProvider(LLMJsonProvider):
     Claude Sonnet 4.5 and Claude Opus 4.1 leverage Anthropic's Structured
     Outputs API via `output_format`. All other Claude models avoid tool use
     and instead apply prefilling plus schema-derived instructions.
+
+    Mode selection:
+    - "auto": Automatically choose based on model capabilities (default)
+    - "structured": Force structured outputs mode
+    - "prefill": Force prefill mode
     """
 
-    def __init__(self, api_key: str = None, base_url: str = None):
+    def __init__(self, api_key: str = None, base_url: str = None, mode: str = "auto"):
+        # Validate mode parameter
+        valid_modes = {"auto", "structured", "prefill"}
+        if mode not in valid_modes:
+            raise ValueError(f"Invalid mode '{mode}'. Must be one of: {valid_modes}")
+
+        self._mode = mode
         self._base_url = base_url
         self.client = AsyncAnthropic(
             api_key=api_key or os.environ.get("ANTHROPIC_API_KEY"),
             base_url=base_url
         )
-        logger.debug("AnthropicProvider initialized (base_url=%s)", base_url or "default")
+        logger.debug("AnthropicProvider initialized (mode=%s, base_url=%s)", mode, base_url or "default")
         self._structured_streamer = StructuredOutputStreamer(
             provider=self,
             structured_output_beta=STRUCTURED_OUTPUT_BETA,
@@ -68,20 +79,29 @@ class AnthropicProvider(LLMJsonProvider):
         debug_print = self._resolve_debug_print(kwargs.pop("debug_print", None))
         base_is_official = self._is_official_api_base()
 
-        if use_structured_outputs is None:
+        # Determine which mode to use: constructor mode > method parameter > auto-detection
+        if self._mode == "structured":
+            use_structured_outputs = True
+        elif self._mode == "prefill":
+            use_structured_outputs = False
+        elif use_structured_outputs is not None:
+            # Method parameter takes precedence over auto-detection
+            use_structured_outputs = bool(use_structured_outputs)
+        else:
+            # Auto-detection based on model capabilities
             use_structured_outputs = (
                 self._supports_structured_outputs(model) and base_is_official
             )
-        else:
-            use_structured_outputs = bool(use_structured_outputs)
 
         logger.info(
-            "Anthropic streaming start model=%s structured=%s base_official=%s",
+            "Anthropic streaming start model=%s structured=%s base_official=%s provider_mode=%s",
             model,
             use_structured_outputs,
             base_is_official,
+            self._mode,
         )
 
+        print(f"[AnthropicProvider stream_json] use_structured_outputs: {use_structured_outputs}")
         if use_structured_outputs:
             async for chunk in self._stream_structured_outputs(
                 prompt, schema, model, debug_print=debug_print, **kwargs

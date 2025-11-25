@@ -42,7 +42,7 @@ async def test_anthropic_integration(capsys):
     api_key = os.getenv("ANTHROPIC_API_KEY")
     base_url = os.getenv("ANTHROPIC_BASE_URL")
 
-    provider = AnthropicProvider(api_key=api_key, base_url=base_url)
+    provider = AnthropicProvider(api_key=api_key, base_url=base_url, mode="auto")
     model = "claude-sonnet-4-5-20250929"
 
     prompt = (
