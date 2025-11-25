@@ -128,7 +128,7 @@ def test_schema_instruction_contains_schema_details():
     instruction = provider._build_schema_instruction(DummySchema)
     assert "### JSON generation rules" in instruction
     assert '• "value"' in instruction
-    assert '"type": "string"' in instruction
+    assert "(string, required)" in instruction
     assert "Respond with a SINGLE JSON object" in instruction
 
 

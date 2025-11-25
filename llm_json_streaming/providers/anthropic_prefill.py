@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict, List, Optional, Typ
 
 from pydantic import BaseModel
 
+from json_repair import repair_json
+
 if TYPE_CHECKING:
     from .anthropic_provider import AnthropicProvider
 
@@ -57,9 +59,13 @@ class PrefillJSONStreamer:
         )
 
         incoming_system_prompt = kwargs.pop("system", None)
-        schema_instruction = schema_instruction or self._build_schema_instruction(schema)
+        schema_instruction = schema_instruction or self._build_schema_instruction(
+            schema
+        )
         if incoming_system_prompt:
-            system_prompt = f"{incoming_system_prompt.strip()}\n\n{schema_instruction}".strip()
+            system_prompt = (
+                f"{incoming_system_prompt.strip()}\n\n{schema_instruction}".strip()
+            )
         else:
             system_prompt = self._build_prefill_system_prompt(
                 schema, schema_instruction=schema_instruction
@@ -76,10 +82,25 @@ class PrefillJSONStreamer:
             async for event in stream:
                 if event.type == "text":
                     snapshot = event.snapshot or ""
-                    accumulated_text = self._merge_prefill_snapshot(snapshot, prefill_prefix)
+                    accumulated_text = self._merge_prefill_snapshot(
+                        snapshot, prefill_prefix
+                    )
                     delta_text = event.text or ""
-                    partial_object = self._provider._safe_parse_json(accumulated_text, schema)
-                    looks_like_json = self._provider._looks_like_json_payload(accumulated_text)
+
+                    # Try direct parsing first
+                    partial_object = self._provider._safe_parse_json(
+                        accumulated_text, schema
+                    )
+
+                    # If direct parsing fails, try json_repair for partial completion
+                    if partial_object is None:
+                        partial_object = self._try_repair_and_parse(
+                            accumulated_text, schema
+                        )
+
+                    looks_like_json = self._provider._looks_like_json_payload(
+                        accumulated_text
+                    )
                     if partial_object is None and not looks_like_json:
                         logger.warning(
                             "Anthropic prefill stream skipping non-JSON chunk (delta preview=%r)",
@@ -93,14 +114,17 @@ class PrefillJSONStreamer:
                         "partial_json": accumulated_text,
                     }
                     if partial_object is not None:
-                        chunk["partial_object"] = partial_object
+                        chunk["partial_object"] = self._normalize_partial_object(partial_object)
                     yield chunk
                 elif event.type == "message_stop":
                     payload = self._parse_text_message(
                         event.message, schema, accumulated_text, prefill_prefix
                     )
                     if payload:
-                        logger.debug("Prefill stream produced final payload keys=%s", list(payload.keys()))
+                        logger.debug(
+                            "Prefill stream produced final payload keys=%s",
+                            list(payload.keys()),
+                        )
                         if debug_print:
                             self._provider._debug_print_separator()
                         yield payload
@@ -109,7 +133,11 @@ class PrefillJSONStreamer:
         json_schema = schema.model_json_schema()
         schema_example = self._build_schema_example(schema)
         summary_lines = self._summarize_schema_fields(json_schema)
-        summary_block = "\n".join(summary_lines) if summary_lines else "• Follow the schema exactly."
+        summary_block = (
+            "\n".join(summary_lines)
+            if summary_lines
+            else "• Follow the schema exactly."
+        )
         required_fields = ", ".join(json_schema.get("required") or []) or "none"
 
         instructions = f"""
@@ -194,10 +222,14 @@ class PrefillJSONStreamer:
         if node_type:
             if node_type == "array":
                 items = node.get("items") or {}
-                item_type = self._describe_schema_type(items) if isinstance(items, dict) else "any"
+                item_type = (
+                    self._describe_schema_type(items)
+                    if isinstance(items, dict)
+                    else "any"
+                )
                 return f"array<{item_type}>"
             if node_type == "object":
-                props = (node.get("properties") or {})
+                props = node.get("properties") or {}
                 return f"object<{', '.join(props.keys()) or '...'}>"
             return str(node_type)
         if "$ref" in node:
@@ -206,7 +238,14 @@ class PrefillJSONStreamer:
 
     def _collect_field_constraints(self, node: Dict[str, Any]) -> List[str]:
         constraints: List[str] = []
-        for key in ("minLength", "maxLength", "minimum", "maximum", "minItems", "maxItems"):
+        for key in (
+            "minLength",
+            "maxLength",
+            "minimum",
+            "maximum",
+            "minItems",
+            "maxItems",
+        ):
             if key in node:
                 constraints.append(f"{key}={node[key]}")
         if node.get("enum"):
@@ -309,6 +348,55 @@ class PrefillJSONStreamer:
             return snapshot
         return f"{prefix}{snapshot}"
 
+    def _normalize_partial_object(self, obj: Any) -> Any:
+        """
+        Ensure partial_object payloads are serialized as dictionaries so they match
+        the structured-output format and print as JSON when logged.
+        """
+        if isinstance(obj, BaseModel):
+            return obj.model_dump()
+        return obj
+
+    def _try_repair_and_parse(
+        self, json_text: str, schema: Type[BaseModel]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Attempt to repair incomplete JSON using json_repair and parse it into a dictionary.
+        This enables partial object support for prefill mode without enforcing schema validation.
+        """
+        if not json_text:
+            return None
+
+        # Only attempt repair if the text looks like JSON but is incomplete
+        if not self._provider._looks_like_json_payload(json_text):
+            return None
+
+        try:
+            # Use json_repair to fix and complete the JSON
+            repaired_json = repair_json(json_text, ensure_ascii=False)
+
+            # Parse the repaired JSON into a python object without schema validation.
+            parsed_data = json.loads(repaired_json)
+            if not isinstance(parsed_data, dict):
+                logger.debug(
+                    "Repaired JSON is not an object; skipping partial object construction."
+                )
+                return None
+            logger.debug(
+                "Successfully repaired and parsed partial JSON (original_len=%d, repaired_len=%d)",
+                len(json_text),
+                len(repaired_json),
+            )
+            return parsed_data
+        except Exception as e:
+            # If repair still fails, return None and let the caller handle it
+            logger.debug(
+                "JSON repair failed for partial parsing: %s (text_preview=%r)",
+                str(e),
+                json_text[:100] if json_text else "",
+            )
+            return None
+
     def _parse_text_message(
         self,
         message: Any,
@@ -325,13 +413,23 @@ class PrefillJSONStreamer:
                 break
 
         candidate_text = candidate_text or accumulated_text
-        candidate_text = self._merge_prefill_snapshot(candidate_text or "", prefill_prefix)
+        candidate_text = self._merge_prefill_snapshot(
+            candidate_text or "", prefill_prefix
+        )
+
+        # Try direct parsing first
         final_obj = self._provider._safe_parse_json(candidate_text, schema)
+
+        # If direct parsing fails, try json_repair for final completion
+        if final_obj is None:
+            final_obj = self._try_repair_and_parse(candidate_text, schema)
 
         if final_obj is not None:
             payload["final_object"] = final_obj
             payload["final_json"] = candidate_text
-            logger.debug("Successfully parsed final JSON for schema=%s", schema.__name__)
+            logger.debug(
+                "Successfully parsed final JSON for schema=%s", schema.__name__
+            )
         elif candidate_text:
             payload["final_json"] = candidate_text
             logger.warning(
@@ -340,4 +438,3 @@ class PrefillJSONStreamer:
             )
 
         return payload
-

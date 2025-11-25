@@ -1,11 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator, Dict, Optional, Type, Union
 from pydantic import BaseModel
-try:
-    from json_repair import repair_json
-    JSON_REPAIR_AVAILABLE = True
-except ImportError:
-    JSON_REPAIR_AVAILABLE = False
 
 class LLMJsonProvider(ABC):
     """
@@ -39,7 +34,6 @@ class LLMJsonProvider(ABC):
         self,
         json_text: str,
         schema: Type[BaseModel],
-        repair_partial: bool = True,
     ) -> Optional[BaseModel]:
         """
         Attempt to parse JSON text against the provided schema.
@@ -48,7 +42,6 @@ class LLMJsonProvider(ABC):
         Args:
             json_text: The JSON text to parse.
             schema: The Pydantic model class defining the expected structure.
-            repair_partial: Whether to attempt repairing partial JSON using json-repair.
         """
         if not json_text:
             return None
@@ -62,14 +55,6 @@ class LLMJsonProvider(ABC):
         except Exception:
             pass
 
-        # If direct parsing fails and json-repair is available, try repairing
-        if repair_partial and JSON_REPAIR_AVAILABLE and self._looks_like_json_payload(stripped):
-            try:
-                repaired_json = repair_json(stripped, ensure_ascii=False)
-                return schema.model_validate_json(repaired_json)
-            except Exception:
-                pass
-
         return None
 
     def _get_best_partial_json(
@@ -80,9 +65,10 @@ class LLMJsonProvider(ABC):
         """
         Get the best possible partial/complete JSON parsing result.
 
-        Returns a tuple of (parsed_object, repaired_json_text).
+        Returns a tuple of (parsed_object, parsed_json_text).
         - parsed_object: The Pydantic model instance if parsing succeeds, None otherwise
-        - repaired_json_text: The repaired JSON text if repair was attempted, original text otherwise
+        - parsed_json_text: The normalized JSON string that was validated, or the stripped
+          original text when parsing fails.
 
         Args:
             json_text: The JSON text to parse.
@@ -101,15 +87,6 @@ class LLMJsonProvider(ABC):
             return parsed_object, stripped
         except Exception:
             pass
-
-        # If direct parsing fails and json-repair is available, try repairing
-        if JSON_REPAIR_AVAILABLE and self._looks_like_json_payload(stripped):
-            try:
-                repaired_json = repair_json(stripped, ensure_ascii=False)
-                parsed_object = schema.model_validate_json(repaired_json)
-                return parsed_object, repaired_json
-            except Exception:
-                pass
 
         return None, stripped
 

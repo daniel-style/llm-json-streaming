@@ -83,15 +83,65 @@ class AnthropicProvider(LLMJsonProvider):
         )
 
         if use_structured_outputs:
-            async for chunk in self._structured_streamer.stream(
+            async for chunk in self._stream_structured_outputs(
                 prompt, schema, model, debug_print=debug_print, **kwargs
             ):
                 yield chunk
         else:
-            async for chunk in self._prefill_streamer.stream(
+            async for chunk in self._stream_prefill_json(
                 prompt, schema, model, debug_print=debug_print, **kwargs
             ):
                 yield chunk
+
+    async def _stream_structured_outputs(
+        self,
+        prompt: str,
+        schema: Type[BaseModel],
+        model: str,
+        *,
+        debug_print: bool,
+        **kwargs: Any,
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        async for chunk in self._structured_streamer.stream(
+            prompt, schema, model, debug_print=debug_print, **kwargs
+        ):
+            yield chunk
+
+    async def _stream_prefill_json(
+        self,
+        prompt: str,
+        schema: Type[BaseModel],
+        model: str,
+        *,
+        debug_print: bool,
+        **kwargs: Any,
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        async for chunk in self._prefill_streamer.stream(
+            prompt, schema, model, debug_print=debug_print, **kwargs
+        ):
+            yield chunk
+
+    def _build_schema_instruction(self, schema: Type[BaseModel]) -> str:
+        return self._prefill_streamer._build_schema_instruction(schema)
+
+    def _build_prefill_system_prompt(
+        self,
+        schema: Type[BaseModel],
+        *,
+        schema_instruction: Optional[str] = None,
+    ) -> str:
+        return self._prefill_streamer._build_prefill_system_prompt(
+            schema, schema_instruction=schema_instruction
+        )
+
+    def _build_prefill_stub(self, schema: Type[BaseModel]) -> str:
+        return self._prefill_streamer._build_prefill_stub(schema)
+
+    def _detect_prefill_prefix(self, messages: list[dict[str, Any]]) -> str:
+        return self._prefill_streamer._detect_prefill_prefix(messages)
+
+    def _merge_prefill_snapshot(self, snapshot: str, prefix: str) -> str:
+        return self._prefill_streamer._merge_prefill_snapshot(snapshot, prefix)
 
     def _supports_structured_outputs(self, model: str) -> bool:
         lowered = (model or "").lower()

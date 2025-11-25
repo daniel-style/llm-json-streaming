@@ -36,10 +36,9 @@ The project uses pytest with pytest-asyncio for async testing. Tests are organiz
 1. **Base Provider** ([`llm_json_streaming/base.py`](llm_json_streaming/base.py))
    - `LLMJsonProvider` abstract class defining the streaming interface
    - Provides utility methods for JSON parsing and validation
-   - Includes automatic JSON repair using json-repair for partial/incomplete JSON
    - Key methods:
-     - `_safe_parse_json()`: Tries direct parsing, then repairs if needed
-     - `_get_best_partial_json()`: Returns both parsed object and repaired text
+     - `_safe_parse_json()`: Attempts to parse accumulated JSON using the schema
+     - `_get_best_partial_json()`: Returns both parsed object and raw JSON text
 
 2. **Factory Pattern** ([`llm_json_streaming/factory.py`](llm_json_streaming/factory.py))
    - `create_provider()` function for instantiating providers
@@ -61,13 +60,13 @@ The project uses pytest with pytest-asyncio for async testing. Tests are organiz
 ### Streaming Interface
 
 All providers implement the `stream_json()` method that yields dictionaries with:
-- `partial_object`: Current best parsed Pydantic object (automatically repaired using json-repair)
+- `partial_object`: Current best parsed Pydantic object (for structured outputs) or dictionary (for prefill mode)
 - `delta`: Real-time text updates during streaming
 - `final_object`: Complete, validated Pydantic model when streaming finishes
 - `partial_json`: Current accumulated JSON text string
 - `final_json`: Complete JSON text string when streaming finishes
 
-**Best Practice**: Use `partial_object` for real-time UI updates as it provides the most reliable partial parsing with automatic JSON repair.
+**Best Practice**: Use `partial_object` for real-time UI updates as it provides the most reliable partial parsing of the accumulated JSON text. Note that prefill mode returns partial objects as dictionaries, while structured outputs return Pydantic model instances.
 
 ### Configuration
 
@@ -87,3 +86,14 @@ Set API keys in environment variables:
 Anthropic provider automatically detects structured output capability through model name patterns containing:
 - `claude-sonnet-4.5*` or `sonnet-4.5*`
 - `claude-opus-4.1*` or `opus-4.1*`
+
+## Prefill Mode JSON Repair
+
+The prefill strategy for older Claude models includes enhanced partial object support:
+
+- **JSON Repair Integration**: Uses `json_repair` library to fix incomplete JSON during streaming
+- **Partial Object Support**: Provides real-time partial objects as dictionaries during streaming (not just Pydantic models)
+- **Graceful Degradation**: Falls back to raw JSON text when repair fails
+- **Final Validation**: Still attempts full schema validation for the final output
+
+This enables older Claude models (like Claude 3 Haiku) to provide real-time partial object updates that were previously only available with structured outputs.

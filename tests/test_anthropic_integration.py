@@ -67,7 +67,9 @@ async def test_anthropic_integration(capsys):
             if partial_object is not None:
                 print("\033c", end="")  # 清空终端
                 print(partial_object, end="", flush=True)
-                latest_partial_json = partial_object
+
+            if "partial_json" in chunk:
+                latest_partial_json = chunk["partial_json"]
 
             if "final_object" in chunk:
                 final_object = chunk["final_object"]
