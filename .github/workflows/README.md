@@ -4,21 +4,7 @@ This directory contains the GitHub Actions workflows for the `llm-json-streaming
 
 ## Workflows Overview
 
-### 1. `test.yml` - Continuous Integration
-
-**Triggers:**
-- Push to `main` or `develop` branches
-- Pull requests to `main` branch
-
-**Features:**
-- Multi-Python version testing (3.9, 3.10, 3.11, 3.12)
-- Code formatting checks (Black)
-- Import sorting checks (isort)
-- Type checking (MyPy)
-- Unit tests with coverage (pytest)
-- Coverage reporting to Codecov
-
-### 2. `release.yml` - Package Release
+### `release.yml` - Package Release
 
 **Triggers:**
 - Git tags starting with `v` (e.g., `v0.1.0`)
@@ -30,32 +16,6 @@ This directory contains the GitHub Actions workflows for the `llm-json-streaming
 - Publishing to Test PyPI (manual)
 - GitHub Release creation
 - Artifact management
-
-### 3. `quality.yml` - Code Quality
-
-**Triggers:**
-- Push to `main` or `develop` branches
-- Pull requests to `main` branch
-
-**Features:**
-- Code formatting verification
-- Import sorting verification
-- Type checking
-- Linting with Ruff
-- Security scanning with Bandit
-- Dependency vulnerability checking with Safety
-- Documentation link validation
-
-### 4. `dependency-check.yml` - Dependency Management
-
-**Triggers:**
-- Weekly schedule (Mondays at midnight UTC)
-- Manual workflow dispatch
-
-**Features:**
-- Outdated dependency checking
-- Security vulnerability scanning
-- Automated reporting
 
 ## Required Secrets
 
@@ -108,22 +68,22 @@ To enable full functionality, configure these secrets in your GitHub repository:
 
 ## Usage
 
-### Running Tests Locally
+### Running Tests Locally (Optional)
+
+While CI checks are simplified, you can still run quality checks locally:
 
 ```bash
 # Install development dependencies
 uv sync --dev
 
-# Run all quality checks
-uv run black --check llm_json_streaming tests
-uv run isort --check-only llm_json_streaming tests
+# Run tests
+uv run pytest
+
+# Optional: Run quality checks
+uv run black llm_json_streaming tests
+uv run isort llm_json_streaming tests
 uv run mypy llm_json_streaming
 uv run ruff check llm_json_streaming tests
-uv run bandit -r llm_json_streaming/
-uv run safety check
-
-# Run tests
-uv run pytest --cov=llm_json_streaming
 ```
 
 ### Publishing Releases
@@ -154,44 +114,36 @@ git push origin v0.1.1
 ### Monitoring Workflows
 
 - **Actions Tab**: View workflow runs and logs
-- **Pull Request Checks**: See status checks on PRs
-- **Branch Protection**: Configure to require checks before merge
+- **Release Management**: Track releases and versions
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Test Failures**
-   - Check workflow logs for specific error messages
-   - Ensure all dependencies are properly declared in `pyproject.toml`
-
-2. **Publishing Failures**
+1. **Publishing Failures**
    - Verify PyPI token is correct and has proper permissions
    - Check if version already exists on PyPI
    - Ensure package passes all checks before publishing
 
-3. **Code Quality Failures**
-   - Run tools locally to see detailed output
-   - Check formatting: `uv run black llm_json_streaming tests`
-   - Check imports: `uv run isort llm_json_streaming tests`
+2. **Build Failures**
+   - Check workflow logs for specific error messages
+   - Ensure all dependencies are properly declared in `pyproject.toml`
+   - Verify package metadata in `pyproject.toml`
 
 ### Debugging Steps
 
-1. **Download Artifacts**: Workflow artifacts include logs and build files
+1. **Download Artifacts**: Workflow artifacts include build files and logs
 2. **Reproduce Locally**: Use the same commands that fail in CI
 3. **Check Dependencies**: Ensure `uv sync --dev` works locally
 
 ## Best Practices
 
-1. **Pre-commit Hooks**: Set up pre-commit to catch issues before CI
-2. **Branch Protection**: Require status checks before merging
-3. **Version Management**: Use semantic versioning
-4. **Security**: Regularly update dependencies and check for vulnerabilities
-5. **Documentation**: Keep CHANGELOG updated for releases
+1. **Version Management**: Use semantic versioning
+2. **Documentation**: Keep CHANGELOG updated for releases
+3. **Local Testing**: Test package building locally before release
 
 ## Security Considerations
 
 - API tokens are stored as encrypted secrets
 - Workflows run in isolated environments
 - No external API calls in workflows (except package publishing)
-- Regular security scanning with Bandit and Safety
