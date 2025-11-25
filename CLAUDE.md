@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a unified Python library for streaming structured JSON outputs from OpenAI and Anthropic (Claude) models. The library abstracts provider differences and offers a consistent interface for streaming JSON data and parsed Pydantic objects.
+This is a unified Python library for streaming structured JSON outputs from OpenAI, Anthropic (Claude), and Google Gemini models. The library abstracts provider differences and offers a consistent interface for streaming JSON data and parsed Pydantic objects.
 
 ## Development Commands
 
@@ -27,6 +27,7 @@ The project uses pytest with pytest-asyncio for async testing. Tests are organiz
 - `tests/test_openai_integration.py` - OpenAI-specific tests
 - `tests/test_anthropic_integration.py` - Anthropic-specific tests
 - `tests/test_anthropic_provider_unit.py` - Anthropic unit tests
+- `tests/test_google_integration.py` - Google-specific tests
 - `tests/test_mock_provider.py` - Mock provider for testing
 
 ## Architecture
@@ -42,22 +43,28 @@ The project uses pytest with pytest-asyncio for async testing. Tests are organiz
 
 2. **Factory Pattern** ([`llm_json_streaming/factory.py`](llm_json_streaming/factory.py))
    - `create_provider()` function for instantiating providers
-   - Supports "openai", "anthropic", or "claude" as provider names
+   - Supports "openai", "anthropic", "claude", or "google" as provider names
 
 3. **Provider Implementations**
-   - **OpenAI Provider** ([`llm_json_streaming/providers/openai_provider.py`](llm_json_streaming/providers/openai_provider.py))
+   - **OpenAI Provider** ([`llm_json_streaming/providers/openai/provider.py`](llm_json_streaming/providers/openai/provider.py))
      - Uses `client.beta.chat.completions.stream` with structured outputs
      - Default model: `gpt-4o-2024-08-06`
 
-   - **Anthropic Provider** ([`llm_json_streaming/providers/anthropic_provider.py`](llm_json_streaming/providers/anthropic_provider.py))
+   - **Anthropic Provider** ([`llm_json_streaming/providers/anthropic/provider.py`](llm_json_streaming/providers/anthropic/provider.py))
      - Configurable strategy selection with three modes:
        - `"auto"`: Auto-detect based on model capabilities (default)
        - `"structured"`: Force structured outputs mode
        - `"prefill"`: Force prefill mode
      - Priority: constructor mode > method parameter > auto-detection
      - Uses specialized streaming classes:
-       - `StructuredOutputStreamer` ([`llm_json_streaming/providers/anthropic_structured.py`](llm_json_streaming/providers/anthropic_structured.py))
-       - `PrefillJSONStreamer` ([`llm_json_streaming/providers/anthropic_prefill.py`](llm_json_streaming/providers/anthropic_prefill.py))
+       - `StructuredOutputStreamer` ([`llm_json_streaming/providers/anthropic/structured.py`](llm_json_streaming/providers/anthropic/structured.py))
+       - `PrefillJSONStreamer` ([`llm_json_streaming/providers/anthropic/prefill.py`](llm_json_streaming/providers/anthropic/prefill.py))
+
+   - **Google Provider** ([`llm_json_streaming/providers/google/provider.py`](llm_json_streaming/providers/google/provider.py))
+     - Uses Google GenAI SDK with structured outputs via `response_mime_type="application/json"`
+     - Default model: `gemini-2.5-flash`
+     - Includes JSON repair functionality for partial object support
+     - Requires `GEMINI_API_KEY` environment variable
 
 ### Streaming Interface
 
@@ -78,6 +85,7 @@ All providers implement the `stream_json()` method that yields dictionaries with
 Set API keys in environment variables:
 - `OPENAI_API_KEY` and `OPENAI_BASE_URL`
 - `ANTHROPIC_API_KEY` and `ANTHROPIC_BASE_URL`
+- `GEMINI_API_KEY` and `GOOGLE_BASE_URL` (optional)
 
 ## Key Design Patterns
 

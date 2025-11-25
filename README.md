@@ -1,17 +1,18 @@
 # LLM JSON Streaming
 
-A unified Python library for streaming structured JSON outputs from OpenAI and Anthropic (Claude).
+A unified Python library for streaming structured JSON outputs from OpenAI, Anthropic (Claude), and Google Gemini.
 
 This library abstracts the differences between providers' structured output APIs and provides a consistent interface to stream JSON data and parsed Pydantic objects.
 
 ## Features
 
-- **Unified Interface**: Use a single API to interact with OpenAI and Anthropic.
+- **Unified Interface**: Use a single API to interact with OpenAI, Anthropic, and Google Gemini.
 - **JSON Streaming**: Access raw JSON chunks as they are generated (`delta`).
 - **Structured Outputs**: Enforce schema validation using Pydantic models.
 - **Partial Parsing**: Access accumulated JSON strings during streaming.
 - **Claude Structured Outputs**: Automatically upgrades Claude Sonnet 4.5 / Opus 4.1 requests to Anthropic's JSON outputs for guaranteed schemas.
 - **Claude Prefill Strategy**: Older Claude models avoid tool calls entirely—schema-aware prefilling keeps responses JSON-only while still streaming deltas. Includes JSON repair for partial object support.
+- **Google Gemini Support**: Native structured outputs with JSON repair for enhanced partial object support.
 
 ## Installation
 
@@ -36,6 +37,9 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 
 ANTHROPIC_API_KEY=your_anthropic_api_key
 ANTHROPIC_BASE_URL=https://api.anthropic.com
+
+GEMINI_API_KEY=your_gemini_api_key
+GOOGLE_BASE_URL=https://generativelanguage.googleapis.com  # Optional
 ```
 
 ## Usage
@@ -55,7 +59,7 @@ class UserProfile(BaseModel):
 
 async def main():
     # 2. Initialize provider using the factory
-    # Available: "openai", "anthropic"
+    # Available: "openai", "anthropic", "claude", "google"
     # Ensure environment variables are set, or pass api_key="..."
     try:
         # For Anthropic, you can optionally specify mode:
@@ -139,6 +143,7 @@ async for chunk in provider.stream_json(prompt, UserProfile):
 |----------|---------------|-------------|
 | OpenAI   | `gpt-4o-2024-08-06` | `response_format` (Structured Outputs) via `beta.chat.completions` |
 | Anthropic   | `claude-3-5-sonnet-20240620` (auto-switches to Structured Outputs for `claude-sonnet-4.5*` / `claude-opus-4.1*`) | Prefill JSON streaming for legacy models, Structured Outputs (`output_format` + beta header) for Sonnet 4.5 / Opus 4.1 |
+| Google   | `gemini-2.5-flash` | `response_mime_type="application/json"` with structured outputs via Google GenAI SDK |
 
 ### Anthropic Mode Configuration
 
@@ -189,6 +194,31 @@ Enhanced with multi-level partial object support:
 - **Progressive improvement**: Starts with partial dictionaries, upgrades to Pydantic objects when JSON becomes complete
 - **JSON repair**: Automatically fixes incomplete JSON to enable better partial parsing
 - **Consistent interface**: Behaves like structured outputs while maintaining backward compatibility
+
+### Google Gemini Support
+
+Google Gemini models use the Google GenAI SDK with native structured outputs:
+
+```python
+from llm_json_streaming import create_provider
+
+provider = create_provider("google")
+async for chunk in provider.stream_json(prompt, UserProfile, model="gemini-2.5-flash"):
+    # Handle streaming chunks
+    if "partial_object" in chunk:
+        print(chunk["partial_object"])
+```
+
+**Key Features:**
+- **Native Structured Outputs**: Uses `response_mime_type="application/json"` for guaranteed JSON responses
+- **JSON Repair**: Automatic repair of incomplete JSON for enhanced partial object support
+- **Schema Validation**: Direct Pydantic schema integration for type-safe responses
+- **Streaming**: Real-time partial objects with progressive enhancement
+
+**Configuration:**
+- Set `GEMINI_API_KEY` environment variable (required)
+- Optionally set `GOOGLE_BASE_URL` for custom endpoints
+- Default model: `gemini-2.5-flash`
 
 ## Testing
 

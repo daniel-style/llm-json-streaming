@@ -1,7 +1,7 @@
 [project]
 name = "llm-json-streaming"
 version = "0.1.0"
-description = "A unified interface for streaming structured JSON from OpenAI and Anthropic."
+description = "A unified interface for streaming structured JSON from OpenAI, Anthropic, and Google Gemini."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
@@ -10,6 +10,7 @@ authors = [
 dependencies = [
     "openai>=2.0.0",
     "anthropic",
+    "google-genai",
     "pydantic>=2.0",
     "python-dotenv",
     "json-repair>=0.30.0",

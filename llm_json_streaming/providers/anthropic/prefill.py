@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from json_repair import repair_json
 
 if TYPE_CHECKING:
-    from .anthropic_provider import AnthropicProvider
+    from .provider import AnthropicProvider
 
 logger = logging.getLogger(__name__)
 

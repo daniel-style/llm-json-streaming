@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict, List, Optional, Typ
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from .anthropic_provider import AnthropicProvider
+    from .provider import AnthropicProvider
 
 logger = logging.getLogger(__name__)
 

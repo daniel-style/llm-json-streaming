@@ -1,6 +1,6 @@
 import pytest
 from llm_json_streaming import create_provider
-from llm_json_streaming.providers import OpenAIProvider, AnthropicProvider
+from llm_json_streaming.providers import OpenAIProvider, AnthropicProvider, GoogleProvider
 
 def test_create_provider_openai():
     provider = create_provider("openai", api_key="dummy")
@@ -13,6 +13,10 @@ def test_create_provider_anthropic():
 def test_create_provider_claude_alias():
     provider = create_provider("claude", api_key="dummy")
     assert isinstance(provider, AnthropicProvider)
+
+def test_create_provider_google():
+    provider = create_provider("google", api_key="dummy")
+    assert isinstance(provider, GoogleProvider)
 
 def test_create_provider_invalid():
     with pytest.raises(ValueError):

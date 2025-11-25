@@ -1,13 +1,14 @@
 from .base import LLMJsonProvider
 from .providers.openai import OpenAIProvider
 from .providers.anthropic import AnthropicProvider
+from .providers.google import GoogleProvider
 
 def create_provider(provider_name: str, **kwargs) -> LLMJsonProvider:
     """
     Factory function to create an LLM provider instance.
 
     Args:
-        provider_name: The name of the provider ("openai", "anthropic", "claude").
+        provider_name: The name of the provider ("openai", "anthropic", "claude", "google").
         **kwargs: Arguments to pass to the provider constructor (e.g. api_key).
 
     Returns:
@@ -22,5 +23,7 @@ def create_provider(provider_name: str, **kwargs) -> LLMJsonProvider:
         return OpenAIProvider(**kwargs)
     elif name == "anthropic" or name == "claude":
         return AnthropicProvider(**kwargs)
+    elif name == "google":
+        return GoogleProvider(**kwargs)
     else:
         raise ValueError(f"Unsupported provider: {provider_name}")
