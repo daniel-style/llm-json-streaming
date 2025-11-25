@@ -87,13 +87,22 @@ class PrefillJSONStreamer:
                     )
                     delta_text = event.text or ""
 
-                    # Try direct parsing first
+                    # Try direct parsing first for valid Pydantic object
                     partial_object = self._provider._safe_parse_json(
                         accumulated_text, schema
                     )
 
-                    # If direct parsing fails, try json_repair for partial completion
+                    # If direct parsing fails, try json_repair to complete the JSON and parse again
                     if partial_object is None:
+                        repaired_json = self._try_repair_json(accumulated_text)
+                        if repaired_json is not None:
+                            partial_object = self._provider._safe_parse_json(
+                                repaired_json, schema
+                            )
+
+                    # Always try to provide a partial object from the beginning, even if incomplete
+                    if partial_object is None:
+                        # Fall back to the old repair_and_parse method for partial dictionaries
                         partial_object = self._try_repair_and_parse(
                             accumulated_text, schema
                         )
@@ -357,12 +366,42 @@ class PrefillJSONStreamer:
             return obj.model_dump()
         return obj
 
+    def _try_repair_json(self, json_text: str) -> Optional[str]:
+        """
+        Attempt to repair incomplete JSON using json_repair and return the repaired JSON string.
+        This allows the repaired JSON to be parsed with schema validation like structured outputs.
+        """
+        if not json_text:
+            return None
+
+        # Only attempt repair if the text looks like JSON but is incomplete
+        if not self._provider._looks_like_json_payload(json_text):
+            return None
+
+        try:
+            # Use json_repair to fix and complete the JSON
+            repaired_json = repair_json(json_text, ensure_ascii=False)
+            logger.debug(
+                "Successfully repaired JSON (original_len=%d, repaired_len=%d)",
+                len(json_text),
+                len(repaired_json),
+            )
+            return repaired_json
+        except Exception as e:
+            # If repair still fails, return None and let the caller handle it
+            logger.debug(
+                "JSON repair failed: %s (text_preview=%r)",
+                str(e),
+                json_text[:100] if json_text else "",
+            )
+            return None
+
     def _try_repair_and_parse(
         self, json_text: str, schema: Type[BaseModel]
     ) -> Optional[Dict[str, Any]]:
         """
         Attempt to repair incomplete JSON using json_repair and parse it into a dictionary.
-        This enables partial object support for prefill mode without enforcing schema validation.
+        This method is kept for backward compatibility and fallback scenarios.
         """
         if not json_text:
             return None
@@ -420,7 +459,13 @@ class PrefillJSONStreamer:
         # Try direct parsing first
         final_obj = self._provider._safe_parse_json(candidate_text, schema)
 
-        # If direct parsing fails, try json_repair for final completion
+        # If direct parsing fails, try json_repair to complete the JSON and parse again
+        if final_obj is None:
+            repaired_json = self._try_repair_json(candidate_text)
+            if repaired_json is not None:
+                final_obj = self._provider._safe_parse_json(repaired_json, schema)
+
+        # If still fails after repair, fall back to the old method for compatibility
         if final_obj is None:
             final_obj = self._try_repair_and_parse(candidate_text, schema)
 

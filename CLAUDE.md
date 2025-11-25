@@ -60,13 +60,16 @@ The project uses pytest with pytest-asyncio for async testing. Tests are organiz
 ### Streaming Interface
 
 All providers implement the `stream_json()` method that yields dictionaries with:
-- `partial_object`: Current best parsed Pydantic object (for structured outputs) or dictionary (for prefill mode)
+- `partial_object`: Current best parsed object with progressive enhancement:
+  - Available from the beginning of streaming in all modes
+  - Early stage: Partial dictionaries for incomplete JSON
+  - Later stage: Validated Pydantic model instances for complete/repairable JSON
 - `delta`: Real-time text updates during streaming
 - `final_object`: Complete, validated Pydantic model when streaming finishes
 - `partial_json`: Current accumulated JSON text string
 - `final_json`: Complete JSON text string when streaming finishes
 
-**Best Practice**: Use `partial_object` for real-time UI updates as it provides the most reliable partial parsing of the accumulated JSON text. Note that prefill mode returns partial objects as dictionaries, while structured outputs return Pydantic model instances.
+**Best Practice**: Use `partial_object` for real-time UI updates as it provides the most reliable partial parsing. Handle both dictionary and Pydantic types gracefully for consistent user experience across all providers and models.
 
 ### Configuration
 
@@ -89,11 +92,16 @@ Anthropic provider automatically detects structured output capability through mo
 
 ## Prefill Mode JSON Repair
 
-The prefill strategy for older Claude models includes enhanced partial object support:
+The prefill strategy for older Claude models includes enhanced partial object support with multi-level parsing:
 
+- **Multi-level Parsing Strategy**:
+  1. Direct schema validation for complete JSON
+  2. JSON repair + schema validation for repairable JSON
+  3. JSON repair + dictionary parsing for incomplete JSON
+- **Real-time Partial Objects**: Available from the first token, progressing from partial dictionaries to Pydantic objects
 - **JSON Repair Integration**: Uses `json_repair` library to fix incomplete JSON during streaming
-- **Partial Object Support**: Provides real-time partial objects as dictionaries during streaming (not just Pydantic models)
-- **Graceful Degradation**: Falls back to raw JSON text when repair fails
-- **Final Validation**: Still attempts full schema validation for the final output
+- **Progressive Enhancement**: Automatically upgrades partial objects from dictionaries to validated Pydantic models as JSON becomes complete
+- **Graceful Degradation**: Falls back to raw JSON text when all parsing attempts fail
+- **Final Validation**: Ensures complete schema validation for final output
 
-This enables older Claude models (like Claude 3 Haiku) to provide real-time partial object updates that were previously only available with structured outputs.
+This enables older Claude models (like Claude 3 Haiku) to provide streaming behavior that matches structured outputs: immediate partial objects with progressive improvement to full Pydantic validation.
