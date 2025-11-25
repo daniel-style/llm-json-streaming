@@ -5,7 +5,18 @@
       "Bash(uv run python:*)",
       "Bash(uv run pytest:*)",
       "Bash(uv sync:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(python -m build:*)",
+      "Bash(python:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(rm:*)",
+      "Bash(twine check:*)",
+      "Bash(twine upload:*)",
+      "Bash(echo:*)",
+      "Bash(uv init:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

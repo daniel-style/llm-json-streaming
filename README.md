@@ -1,5 +1,10 @@
 # LLM JSON Streaming
 
+[![PyPI Version](https://img.shields.io/pypi/v/llm-json-streaming.svg)](https://pypi.org/project/llm-json-streaming/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/llm-json-streaming.svg)](https://pypi.org/project/llm-json-streaming/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg)](https://github.com/daniel-style/llm-json-streaming/actions)
+
 A unified Python library for streaming structured JSON outputs from OpenAI, Anthropic (Claude), and Google Gemini.
 
 This library abstracts the differences between providers' structured output APIs and provides a consistent interface to stream JSON data and parsed Pydantic objects.
@@ -16,16 +21,53 @@ This library abstracts the differences between providers' structured output APIs
 
 ## Installation
 
-This project is managed with `uv`.
+### 📦 From PyPI (Recommended)
+
+Install the package from PyPI using `pip` or `uv`:
+
+```bash
+# Using pip
+pip install llm-json-streaming
+
+# Using uv (recommended)
+uv add llm-json-streaming
+```
+
+### 🧪 From Test PyPI
+
+For testing pre-release versions:
+
+```bash
+# Using pip
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ llm-json-streaming
+
+# Using uv
+uv add --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ llm-json-streaming
+```
+
+### 🛠️ From Source
+
+Install from source for development:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/llm-json-streaming.git
+git clone https://github.com/daniel-style/llm-json-streaming.git
 cd llm-json-streaming
 
-# Install dependencies
+# Using uv (recommended)
 uv sync
+
+# Or using pip
+pip install -e .
 ```
+
+### 📋 Package Information
+
+- **PyPI**: https://pypi.org/project/llm-json-streaming/
+- **Test PyPI**: https://test.pypi.org/project/llm-json-streaming/
+- **Current Version**: 0.1.0
+- **Python**: 3.9+
+- **Dependencies**: Automatically installed
 
 ## Configuration
 
@@ -44,10 +86,13 @@ GOOGLE_BASE_URL=https://generativelanguage.googleapis.com  # Optional
 
 ## Usage
 
-Define your output schema using Pydantic and pass it to the provider.
+### 🚀 Quick Start
+
+Define your output schema using Pydantic and pass it to the provider:
 
 ```python
 import asyncio
+import os
 from pydantic import BaseModel
 from llm_json_streaming import create_provider
 
@@ -56,6 +101,7 @@ class UserProfile(BaseModel):
     name: str
     age: int
     bio: str
+    skills: list[str] = []
 
 async def main():
     # 2. Initialize provider using the factory
@@ -63,39 +109,133 @@ async def main():
     # Ensure environment variables are set, or pass api_key="..."
     try:
         # For Anthropic, you can optionally specify mode:
-        # provider = create_provider("anthropic", mode="structured")  # Force structured outputs
-        # provider = create_provider("anthropic", mode="prefill")     # Force prefill mode
-        # provider = create_provider("anthropic", mode="auto")        # Auto-detect (default)
-        provider = create_provider("openai")
+        provider = create_provider("openai")  # Use OpenAI
+        # provider = create_provider("anthropic", mode="auto")  # Anthropic with auto-detection
+        # provider = create_provider("google")  # Google Gemini
     except ValueError as e:
-        print(e)
+        print(f"Provider creation error: {e}")
         return
 
     prompt = "Generate a profile for a fictional software engineer."
 
     # 3. Stream results
-    print("Streaming JSON...")
+    print("🔄 Streaming JSON...")
     try:
         async for chunk in provider.stream_json(prompt, UserProfile):
             # Real-time partial parsed object (recommended for streaming updates)
             if "partial_object" in chunk:
-                # Display the current best partial/complete parsed object
-                user_profile = chunk["partial_object"]
-                print(f"\rCurrent: {user_profile.name if user_profile.name else '...'}, {user_profile.age if user_profile.age else '?'}", end="", flush=True)
+                obj = chunk["partial_object"]
+                # Handle both dict and Pydantic objects
+                if hasattr(obj, 'name'):  # Pydantic object
+                    name = obj.name or "..."
+                    age = obj.age if obj.age else "?"
+                else:  # Dict object
+                    name = obj.get('name', "...")
+                    age = obj.get('age', "?")
 
-            # Raw text delta (for character-by-character display)
-            if "delta" in chunk:
-                print(chunk["delta"], end="", flush=True)
+                print(f"\r📝 Current: {name}, Age: {age}", end="", flush=True)
 
             # Final parsed object (complete and validated)
             if "final_object" in chunk:
-                user_profile = chunk["final_object"]
-                print(f"\n\nComplete: {user_profile.name}, {user_profile.age}")
+                final_profile = chunk["final_object"]
+                print(f"\n\n✅ Complete: {final_profile.name}, Age: {final_profile.age}")
+                print(f"📋 Bio: {final_profile.bio}")
+                if final_profile.skills:
+                    print(f"🛠️  Skills: {', '.join(final_profile.skills)}")
+                break
+
     except Exception as e:
-        print(f"\nError during streaming: {e}")
+        print(f"\n❌ Error during streaming: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())
+```
+
+### 🔧 Advanced Usage
+
+#### Multiple Providers Comparison
+
+```python
+import asyncio
+from llm_json_streaming import create_provider
+from pydantic import BaseModel
+
+class TaskResult(BaseModel):
+    title: str
+    status: str
+    priority: int
+
+async def compare_providers():
+    providers = {
+        "OpenAI": create_provider("openai"),
+        "Anthropic": create_provider("anthropic", mode="auto"),
+        "Google": create_provider("google")
+    }
+
+    prompt = "Create a software development task with title, status, and priority"
+
+    results = {}
+    for name, provider in providers.items():
+        try:
+            async for chunk in provider.stream_json(prompt, TaskResult):
+                if "final_object" in chunk:
+                    results[name] = chunk["final_object"]
+                    print(f"✅ {name}: {results[name].title}")
+                    break
+        except Exception as e:
+            print(f"❌ {name} failed: {e}")
+
+    return results
+
+# Run comparison
+# asyncio.run(compare_providers())
+```
+
+#### Error Handling & Type Safety
+
+```python
+import asyncio
+from llm_json_streaming import create_provider
+from pydantic import BaseModel, ValidationError
+
+class APIResponse(BaseModel):
+    success: bool
+    data: dict
+    error_message: str = ""
+
+async def safe_streaming_example():
+    try:
+        provider = create_provider("anthropic")  # Fallback provider
+
+        async for chunk in provider.stream_json(
+            "Process this user request",
+            APIResponse
+        ):
+            if "partial_object" in chunk:
+                obj = chunk["partial_object"]
+
+                # Safe object handling
+                if isinstance(obj, dict):
+                    # Handle dict objects
+                    success = obj.get('success', False)
+                elif hasattr(obj, 'success'):
+                    # Handle Pydantic objects
+                    success = obj.success
+                else:
+                    print("⚠️  Unexpected object type")
+                    continue
+
+                # Process partial results...
+
+            if "final_object" in chunk:
+                final = chunk["final_object"]
+                print(f"✅ Final result: {final}")
+                break
+
+    except ValidationError as e:
+        print(f"❌ Schema validation error: {e}")
+    except Exception as e:
+        print(f"❌ Streaming error: {e}")
 ```
 
 ## Streaming Interface
@@ -222,16 +362,167 @@ async for chunk in provider.stream_json(prompt, UserProfile, model="gemini-2.5-f
 
 ## Testing
 
+### Running Tests
+
 To run the tests with `uv`:
 
 ```bash
+# Run all tests
 uv run pytest
+
+# Run specific test file
+uv run pytest tests/test_providers.py
+
+# Run with coverage
+uv run pytest --cov=llm_json_streaming
 ```
+
+### Quick Validation
+
+Test the package installation and basic functionality:
+
+```bash
+# Using the test package
+git clone https://github.com/daniel-style/llm-json-streaming.git
+cd llm-json-streaming/test_package
+
+# Test with uv
+cd llm-test-project
+uv add llm-json-streaming==0.1.0
+uv run python basics_test.py
+```
+
+## Troubleshooting
+
+### 🔧 Common Issues
+
+#### Installation Issues
+
+**Problem**: `ModuleNotFoundError: No module named 'llm_json_streaming'`
+```bash
+# Solution: Install the package
+pip install llm-json-streaming
+# or
+uv add llm-json-streaming
+```
+
+**Problem**: Dependency conflicts
+```bash
+# Solution: Use virtual environment
+python -m venv myenv
+source myenv/bin/activate  # Windows: myenv\Scripts\activate
+pip install llm-json-streaming
+```
+
+#### API Key Issues
+
+**Problem**: Authentication errors
+```bash
+# Solution: Set environment variables
+export OPENAI_API_KEY="your-key"
+export ANTHROPIC_API_KEY="your-key"
+export GEMINI_API_KEY="your-key"
+
+# Or create .env file
+echo "OPENAI_API_KEY=your-key" > .env
+```
+
+#### Streaming Issues
+
+**Problem**: No `final_object` received
+- **Cause**: Provider might have returned incomplete JSON
+- **Solution**: Check `partial_object` for partial results and improve prompt clarity
+
+**Problem**: Mixed object types (dict vs Pydantic)
+```python
+# Solution: Handle both types safely
+if "partial_object" in chunk:
+    obj = chunk["partial_object"]
+    if hasattr(obj, 'field_name'):  # Pydantic object
+        value = obj.field_name
+    else:  # Dict object
+        value = obj.get('field_name')
+```
+
+#### Provider-Specific Issues
+
+**OpenAI**:
+- Model: `gpt-4o-2024-08-06` (default)
+- Rate limits: Check OpenAI API quotas
+- Service issues: Check [OpenAI Status](https://status.openai.com/)
+
+**Anthropic**:
+- Model: `claude-3-5-sonnet-20240620` (default)
+- Structured outputs: Available for Claude Sonnet 4.5+ and Opus 4.1+
+- Mode selection: `auto`, `structured`, `prefill`
+
+**Google Gemini**:
+- Model: `gemini-2.5-flash` (default)
+- API key: Required, no free tier
+- Regional availability: Check [Google AI Studio](https://aistudio.google.com/)
+
+### 🚨 Error Codes Reference
+
+| Error Code | Description | Solution |
+|------------|-------------|----------|
+| 401 | Invalid API key | Check environment variables |
+| 429 | Rate limit exceeded | Wait and retry, or upgrade plan |
+| 503 | Service unavailable | Try again later or switch provider |
+| ValueError | Invalid provider name | Use: "openai", "anthropic", "claude", "google" |
+
+### 📞 Getting Help
+
+1. **Check the [test results](test_package/TEST_RESULTS.md)** for known issues
+2. **Review usage examples** in the test package
+3. **Open an issue** on GitHub with:
+   - Python version
+   - Package version
+   - Error message
+   - Minimal reproduction code
+4. **Check provider documentation**:
+   - [OpenAI API](https://platform.openai.com/docs)
+   - [Anthropic API](https://docs.anthropic.com)
+   - [Google Gemini API](https://ai.google.dev/docs)
 
 ## Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+
+### Development Setup
+
+```bash
+# Clone and set up development environment
+git clone https://github.com/daniel-style/llm-json-streaming.git
+cd llm-json-streaming
+
+# Using uv (recommended)
+uv sync
+
+# Or using pip
+pip install -e ".[dev]"
+```
+
+### Running Tests
+
+```bash
+# All tests
+uv run pytest
+
+# With coverage
+uv run pytest --cov=llm_json_streaming
+
+# Specific provider tests
+uv run pytest tests/test_openai_integration.py
+```
 
 ## License
 
 [MIT](LICENSE)
+
+## 📚 Additional Resources
+
+- **PyPI Package**: https://pypi.org/project/llm-json-streaming/
+- **Test PyPI**: https://test.pypi.org/project/llm-json-streaming/
+- **GitHub Repository**: https://github.com/daniel-style/llm-json-streaming
+- **Issue Tracker**: https://github.com/daniel-style/llm-json-streaming/issues
+- **Documentation**: See inline code documentation and examples
