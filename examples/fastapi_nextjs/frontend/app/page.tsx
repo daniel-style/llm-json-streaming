@@ -114,8 +114,9 @@ export default function Home() {
     abortControllerRef.current = new AbortController();
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/stream`, {
+      // Use the local Next.js API route as a proxy
+      // This avoids CORS issues because the request is made to the same origin
+      const response = await fetch('/api/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
