@@ -202,7 +202,7 @@ export default function Home() {
               <Sparkles size={18} />
             </div>
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
-              LLM Stream Explorer
+              LLM JSON Streaming
             </h1>
           </div>
           <div className="text-sm text-slate-500 flex items-center gap-4">
