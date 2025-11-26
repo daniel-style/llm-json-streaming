@@ -5,9 +5,23 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg)](https://github.com/daniel-style/llm-json-streaming/actions)
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/daniel-style/llm-json-streaming/1f8d522bc12f13f3fe54de59708c3f245db97498/llm-json-streaming.png" alt="LLM JSON Streaming Logo" width="100%">
+</p>
+
+
+
 A unified Python library for streaming structured JSON outputs from OpenAI, Anthropic (Claude), and Google Gemini.
 
 This library leverages **native model capabilities** for structured JSON generation—avoiding tool-based approaches entirely. By using each provider's built-in structured output features, it delivers superior performance, reliability, and efficiency compared to traditional function calling or tool methods.
+
+## 🎥 Demo
+
+Watch the library in action:
+
+[![Demo Video](https://img.youtube.com/vi/Y3YN6sYiWrU/0.jpg)](https://www.youtube.com/watch?v=Y3YN6sYiWrU)
+
+**[Try the Live Demo](https://llm-json-streaming.vercel.app/)**
 
 ## 🚀 Quick Start
 
