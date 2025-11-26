@@ -48,7 +48,7 @@ interface CityGuide {
 
 export default function Home() {
   const [apiKey, setApiKey] = useState('');
-  const [prompt, setPrompt] = useState('Create a comprehensive 3-day travel guide for Shanghai, China, including hidden gems and local food spots.');
+  const [city, setCity] = useState('Shanghai');
   const [provider, setProvider] = useState('anthropic');
   const [model, setModel] = useState('claude-sonnet-4-5-20250929');
   const [isLoading, setIsLoading] = useState(false);
@@ -114,6 +114,8 @@ export default function Home() {
     abortControllerRef.current = new AbortController();
 
     try {
+      const prompt = `Create a comprehensive 3-day travel guide for ${city}, China, including hidden gems and local food spots.`;
+      
       // Use the local Next.js API route as a proxy
       // This avoids CORS issues because the request is made to the same origin
       const response = await fetch('/api/stream', {
@@ -270,20 +272,34 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Prompt Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
                 <Navigation size={16} className="text-indigo-600" />
-                <h2 className="font-semibold text-slate-700">Input</h2>
+                <h2 className="font-semibold text-slate-700">Destination</h2>
               </div>
               <div className="p-4 space-y-3">
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  rows={6}
-                  className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none transition-shadow"
-                  placeholder="What would you like to generate?"
-                />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Select a City</label>
+                  <div className="relative">
+                    <select 
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="w-full pl-3 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none transition-shadow cursor-pointer"
+                    >
+                      <option value="Shanghai">Shanghai (上海)</option>
+                      <option value="Beijing">Beijing (北京)</option>
+                      <option value="Chengdu">Chengdu (成都)</option>
+                      <option value="Xi'an">Xi'an (西安)</option>
+                      <option value="Guangzhou">Guangzhou (广州)</option>
+                      <option value="Hangzhou">Guangzhou (杭州)</option>
+                      <option value="Chongqing">Chongqing (重庆)</option>
+                      <option value="Shenzhen">Shenzhen (深圳)</option>
+                      <option value="Hong Kong">Hong Kong (香港)</option>
+                    </select>
+                    <MapPin className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" size={16} />
+                  </div>
+                </div>
+                
                 <button
                   onClick={handleSubmit}
                   className={`w-full flex items-center justify-center gap-2 text-white px-4 py-3 rounded-xl font-medium transition-all shadow-md disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98] ${
@@ -300,7 +316,7 @@ export default function Home() {
                   ) : (
                     <>
                       <Send size={18} />
-                      Start Streaming
+                      Generate Guide
                     </>
                   )}
                 </button>
