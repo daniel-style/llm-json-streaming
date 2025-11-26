@@ -324,8 +324,8 @@ export default function Home() {
             </div>
 
             {/* Raw Data Panel */}
-            <div className="bg-slate-900 rounded-2xl shadow-lg overflow-hidden border border-slate-800 flex flex-col h-[300px]">
-              <div className="bg-slate-950/50 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+            <div className="bg-slate-900 rounded-2xl shadow-lg overflow-hidden border border-slate-800 flex flex-col h-[300px] lg:h-[500px] lg:sticky lg:top-24">
+              <div className="bg-slate-950/50 px-4 py-3 border-b border-slate-800 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-2 text-slate-400 text-xs font-mono font-medium uppercase tracking-wider">
                   <Code size={14} /> Live JSON Stream
                 </div>
